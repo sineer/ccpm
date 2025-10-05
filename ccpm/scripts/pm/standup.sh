@@ -35,6 +35,7 @@ fi
 echo ""
 echo "🔄 Currently In Progress:"
 # Show active work items
+in_progress_found=false
 for updates_dir in .claude/epics/*/updates/*/; do
   [ -d "$updates_dir" ] || continue
   if [ -f "$updates_dir/progress.md" ]; then
@@ -42,8 +43,30 @@ for updates_dir in .claude/epics/*/updates/*/; do
     epic_name=$(basename $(dirname $(dirname "$updates_dir")))
     completion=$(grep "^completion:" "$updates_dir/progress.md" | head -1 | sed 's/^completion: *//')
     echo "  • Issue #$issue_num ($epic_name) - ${completion:-0%} complete"
+    in_progress_found=true
   fi
 done
+[ "$in_progress_found" = false ] && echo "  (none)"
+
+echo ""
+echo "🚫 Blocked Tasks:"
+# Show blocked tasks
+blocked_found=false
+for epic_dir in .claude/epics/*/; do
+  [ -d "$epic_dir" ] || continue
+  epic_name=$(basename "$epic_dir")
+  for task_file in "$epic_dir"/[0-9]*.md; do
+    [ -f "$task_file" ] || continue
+    status=$(grep "^status:" "$task_file" | head -1 | sed 's/^status: *//')
+    if [ "$status" = "blocked" ]; then
+      task_name=$(grep "^name:" "$task_file" | head -1 | sed 's/^name: *//')
+      task_num=$(basename "$task_file" .md)
+      echo "  • #$task_num - $task_name"
+      blocked_found=true
+    fi
+  done
+done
+[ "$blocked_found" = false ] && echo "  (none)"
 
 echo ""
 echo "⏭️ Next Available Tasks:"
