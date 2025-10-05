@@ -34,17 +34,21 @@ fi
 
 echo ""
 echo "🔄 Currently In Progress:"
-# Show active work items
+# Show active work items (check task files for in-progress status)
 in_progress_found=false
-for updates_dir in .claude/epics/*/updates/*/; do
-  [ -d "$updates_dir" ] || continue
-  if [ -f "$updates_dir/progress.md" ]; then
-    issue_num=$(basename "$updates_dir")
-    epic_name=$(basename $(dirname $(dirname "$updates_dir")))
-    completion=$(grep "^completion:" "$updates_dir/progress.md" | head -1 | sed 's/^completion: *//')
-    echo "  • Issue #$issue_num ($epic_name) - ${completion:-0%} complete"
-    in_progress_found=true
-  fi
+for epic_dir in .claude/epics/*/; do
+  [ -d "$epic_dir" ] || continue
+  epic_name=$(basename "$epic_dir")
+  for task_file in "$epic_dir"/[0-9]*.md; do
+    [ -f "$task_file" ] || continue
+    status=$(grep "^status:" "$task_file" | head -1 | sed 's/^status: *//')
+    if [ "$status" = "in-progress" ]; then
+      task_name=$(grep "^name:" "$task_file" | head -1 | sed 's/^name: *//')
+      task_num=$(basename "$task_file" .md)
+      echo "  • #$task_num ($epic_name) - $task_name"
+      in_progress_found=true
+    fi
+  done
 done
 [ "$in_progress_found" = false ] && echo "  (none)"
 
@@ -70,14 +74,15 @@ done
 
 echo ""
 echo "⏭️ Next Available Tasks:"
-# Show top 3 available tasks
+# Show top 3 available tasks (backlog status, no dependencies)
 count=0
 for epic_dir in .claude/epics/*/; do
   [ -d "$epic_dir" ] || continue
   for task_file in "$epic_dir"/[0-9]*.md; do
     [ -f "$task_file" ] || continue
     status=$(grep "^status:" "$task_file" | head -1 | sed 's/^status: *//')
-    if [ "$status" != "open" ] && [ -n "$status" ]; then
+    # Only show backlog tasks (available to start)
+    if [ "$status" != "backlog" ]; then
       continue
     fi
 
