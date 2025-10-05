@@ -104,9 +104,11 @@ done
 
 echo ""
 echo "📊 Quick Stats:"
-total_tasks=$(find .claude/epics -name "[0-9]*.md" 2>/dev/null | wc -l)
-open_tasks=$(find .claude/epics -name "[0-9]*.md" -exec grep -l "^status: *open" {} \; 2>/dev/null | wc -l)
-closed_tasks=$(find .claude/epics -name "[0-9]*.md" -exec grep -l "^status: *closed" {} \; 2>/dev/null | wc -l)
+# Exclude *-analysis.md files from counts
+total_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" 2>/dev/null | wc -l)
+# Count backlog and in-progress as "open"
+open_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" -exec grep -l "^status: *\(backlog\|in-progress\)" {} \; 2>/dev/null | wc -l)
+closed_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" -exec grep -l "^status: *closed" {} \; 2>/dev/null | wc -l)
 echo "  Tasks: $open_tasks open, $closed_tasks closed, $total_tasks total"
 
 exit 0
