@@ -15,8 +15,9 @@ Mark an issue as complete and close it on GitHub.
 
 ### 1. Find Local Task File
 
-First check if `.claude/epics/*/$ARGUMENTS.md` exists (new naming).
-If not found, search for task file with `github:.*issues/$ARGUMENTS` in frontmatter (old naming).
+First check if `.claude/epics/*/$ARGUMENTS-*.md` exists (descriptive naming: NN-slug.md).
+If not found, check `.claude/epics/*/$ARGUMENTS.md` (legacy numeric-only naming).
+If not found, search for task file with `github:.*issues/$ARGUMENTS` in frontmatter.
 If not found: "❌ No local task for issue #$ARGUMENTS"
 
 ### 2. Update Local Status

@@ -246,7 +246,35 @@ cat /tmp/batch-*/mapping.txt >> /tmp/task-mapping.txt
 
 ### 3. Rename Task Files and Update References
 
-First, build a mapping of old numbers to new issue IDs:
+First, define slug generation function:
+```bash
+# Function to slugify task name into URL-friendly format
+slugify_task_name() {
+  local task_name="$1"
+
+  # Convert to lowercase
+  slug=$(echo "$task_name" | tr '[:upper:]' '[:lower:]')
+
+  # Replace spaces with hyphens
+  slug=$(echo "$slug" | tr ' ' '-')
+
+  # Remove special characters (keep alphanumeric and hyphens)
+  slug=$(echo "$slug" | sed 's/[^a-z0-9-]//g')
+
+  # Remove multiple consecutive hyphens
+  slug=$(echo "$slug" | sed 's/--*/-/g')
+
+  # Remove leading/trailing hyphens
+  slug=$(echo "$slug" | sed 's/^-//; s/-$//')
+
+  # Truncate to 50 characters max
+  slug=$(echo "$slug" | cut -c1-50 | sed 's/-$//')
+
+  echo "$slug"
+}
+```
+
+Then build a mapping of old numbers to new issue IDs:
 ```bash
 # Create mapping from old task numbers (001, 002, etc.) to new issue IDs
 > /tmp/id-mapping.txt
@@ -261,7 +289,14 @@ Then rename files and update all references:
 ```bash
 # Process each task file
 while IFS=: read -r task_file task_number; do
-  new_name="$(dirname "$task_file")/${task_number}.md"
+  # Extract task name from frontmatter
+  task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
+
+  # Generate slug from task name
+  slug=$(slugify_task_name "$task_name")
+
+  # Create new filename: {issue_number}-{slug}.md
+  new_name="$(dirname "$task_file")/${task_number}-${slug}.md"
 
   # Read the file content
   content=$(cat "$task_file")

@@ -20,8 +20,9 @@ Begin work on a GitHub issue with parallel agents based on work stream analysis.
    If it fails: "❌ Cannot access issue #$ARGUMENTS. Check number or run: gh auth login"
 
 2. **Find local task file:**
-   - First check if `.claude/epics/*/$ARGUMENTS.md` exists (new naming)
-   - If not found, search for file containing `github:.*issues/$ARGUMENTS` in frontmatter (old naming)
+   - First check if `.claude/epics/*/$ARGUMENTS-*.md` exists (descriptive naming: NN-slug.md)
+   - If not found, check `.claude/epics/*/$ARGUMENTS.md` (legacy numeric-only naming)
+   - If not found, search for file containing `github:.*issues/$ARGUMENTS` in frontmatter
    - If not found: "❌ No local task for issue #$ARGUMENTS. This issue may have been created outside the PM system."
 
 3. **Check for analysis:**
