@@ -36,16 +36,40 @@ echo ""
 echo "🔄 Currently In Progress:"
 # Show active work items (check task files for in-progress status)
 in_progress_found=false
+
+# First, check epic-level work (epic.md files with active status)
+for epic_dir in .claude/epics/*/; do
+  [ -d "$epic_dir" ] || continue
+  epic_file="$epic_dir/epic.md"
+  [ -f "$epic_file" ] || continue
+
+  status=$(grep "^status:" "$epic_file" | head -1 | sed 's/^status: *//')
+  # Consider in-progress, testing as active work
+  if [ "$status" = "in-progress" ] || [ "$status" = "testing" ]; then
+    epic_name=$(basename "$epic_dir")
+    github_url=$(grep "^github:" "$epic_file" | head -1 | sed 's/^github: *//')
+    issue_num=$(echo "$github_url" | grep -oE '[0-9]+$')
+    progress=$(grep "^progress:" "$epic_file" | head -1 | sed 's/^progress: *//')
+
+    if [ -n "$issue_num" ]; then
+      echo "  • #$issue_num [EPIC] ($epic_name) - $status ($progress)"
+      in_progress_found=true
+    fi
+  fi
+done
+
+# Then, check task-level work
 for epic_dir in .claude/epics/*/; do
   [ -d "$epic_dir" ] || continue
   epic_name=$(basename "$epic_dir")
   for task_file in "$epic_dir"/[0-9]*.md; do
     [ -f "$task_file" ] || continue
     status=$(grep "^status:" "$task_file" | head -1 | sed 's/^status: *//')
-    if [ "$status" = "in-progress" ]; then
+    # Handle both in-progress (hyphen) and in_progress (underscore) formats
+    if [ "$status" = "in-progress" ] || [ "$status" = "in_progress" ]; then
       task_name=$(grep "^name:" "$task_file" | head -1 | sed 's/^name: *//')
-      task_num=$(basename "$task_file" .md)
-      echo "  • #$task_num ($epic_name) - $task_name"
+      task_num=$(basename "$task_file" .md | grep -oE '^[0-9]+')
+      echo "  • #$task_num [TASK] ($epic_name) - $task_name"
       in_progress_found=true
     fi
   done
@@ -109,11 +133,17 @@ done
 
 echo ""
 echo "📊 Quick Stats:"
-# Exclude *-analysis.md files from counts
+# Count task-level work (handle both hyphen and underscore formats)
 total_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" 2>/dev/null | wc -l)
-# Count backlog and in-progress as "open"
-open_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" -exec grep -l "^status: *\(backlog\|in-progress\)" {} \; 2>/dev/null | wc -l)
-closed_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" -exec grep -l "^status: *closed" {} \; 2>/dev/null | wc -l)
+open_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" -exec grep -l "^status: *\(backlog\|in-progress\|in_progress\)" {} \; 2>/dev/null | wc -l)
+closed_tasks=$(find .claude/epics -name "[0-9]*.md" ! -name "*-analysis.md" -exec grep -l "^status: *\(closed\|completed\)" {} \; 2>/dev/null | wc -l)
+
+# Count epic-level work
+total_epics=$(find .claude/epics -name "epic.md" 2>/dev/null | wc -l)
+open_epics=$(find .claude/epics -name "epic.md" -exec grep -l "^status: *\(backlog\|in-progress\|testing\)" {} \; 2>/dev/null | wc -l)
+closed_epics=$(find .claude/epics -name "epic.md" -exec grep -l "^status: *\(closed\|completed\)" {} \; 2>/dev/null | wc -l)
+
 echo "  Tasks: $open_tasks open, $closed_tasks closed, $total_tasks total"
+echo "  Epics: $open_epics open, $closed_epics closed, $total_epics total"
 
 exit 0
